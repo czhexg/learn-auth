@@ -32,9 +32,25 @@ app.route("/").get((req, res) => {
     res.render("home");
 });
 
-app.route("/login").get((req, res) => {
-    res.render("login");
-});
+app.route("/login")
+    .get((req, res) => {
+        res.render("login");
+    })
+    .post((req, res) => {
+        const username = req.body.username;
+        const password = req.body.password;
+        User.findOne({ email: username }, (err, foundUser) => {
+            if (err) {
+                console.log(err);
+            } else {
+                if (foundUser.password === password) {
+                    res.render("secrets");
+                } else {
+                    console.log("username or password is incorrect");
+                }
+            }
+        });
+    });
 
 app.route("/register")
     .get((req, res) => {
