@@ -2,7 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const crypto = require("crypto");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const app = express();
 
@@ -40,16 +41,21 @@ app.route("/login")
     })
     .post((req, res) => {
         const username = req.body.username;
-        const password = crypto
-            .createHash("sha256")
-            .update(req.body.password)
-            .digest("hex");
+        const password = req.body.password;
         User.findOne({ email: username }, (err, foundUser) => {
             if (err) {
                 console.log(err);
             } else {
-                if (foundUser.password === password) {
-                    res.render("secrets");
+                if (foundUser) {
+                    bcrypt.compare(
+                        password,
+                        foundUser.password,
+                        (err, result) => {
+                            if (result === true) {
+                                res.render("secrets");
+                            }
+                        }
+                    );
                 } else {
                     console.log("username or password is incorrect");
                 }
@@ -62,19 +68,18 @@ app.route("/register")
         res.render("register");
     })
     .post((req, res) => {
-        const newUser = new User({
-            email: req.body.username,
-            password: crypto
-                .createHash("sha256")
-                .update(req.body.password)
-                .digest("hex"),
-        });
-        newUser.save((err) => {
-            if (err) {
-                console.log(err);
-            } else {
-                res.render("secrets");
-            }
+        bcrypt.hash(req.body.password, saltRounds, (err, hash) => {
+            const newUser = new User({
+                email: req.body.username,
+                password: hash,
+            });
+            newUser.save((err) => {
+                if (err) {
+                    console.log(err);
+                } else {
+                    res.render("secrets");
+                }
+            });
         });
     });
 
